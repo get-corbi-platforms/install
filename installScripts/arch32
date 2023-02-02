@@ -115,4 +115,21 @@ makeFileSystems() {
 
 }
 
-  32bitpkgs=()
+  32bitpkgs=(base base-devel intel-ucode amd-ucode testdisk mesa wget mkinitcpio nano linux linux-firmware linux-headers iwd iw dhcpcd  git grub)
+  
+  parchridgeInaPearTree() {
+  
+  	pacstrap /mnt ${32bitpkgs}
+	cp /mnt2/installScripts/newInstall /mnt/newInstall
+	chmod +x /mnt/newInstall 
+	wait
+	
+	arch-chroot /mnt zsh ./newInstall
+	wait
+	
+}
+
+(
+	partridgeInaPearTree
+} | 
+dialog height=30 width=30 
