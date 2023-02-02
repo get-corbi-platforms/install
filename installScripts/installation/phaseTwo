@@ -1,0 +1,174 @@
+#!/usr/bin/env zsh
+
+provisioning() {
+
+	 ln -sf /usr/share/zoneinfo/America/Los_Angeles /etc/localtime
+
+	 hwclock --systohc
+
+	 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+	 echo "LANG=en_UTF-8" >> /etc/locale.conf
+	 locale-gen; wait
+
+	 echo "me ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+	 echo " %root ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+	 echo " %me ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+	 echo "admin ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+	 echo "web ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+	pacman-key --init
+	pacman-key --populate
+	wait
+
+}
+
+makeUsers() {
+
+	 groupadd me
+	 groupadd admin
+	 groupadd sudoers
+	 groupadd web
+
+	if [ ! -e "/admin" ]; then
+	 mkdir /admin
+	 if [ ! -e "/web" ]; then
+	  mkdir /web
+	 fi
+	fi
+
+	 useradd -M me -g me -G root,sys,network,sudoers,web,admin -d /home -s /bin/zsh
+	 useradd -M admin -g me -G root,sys,network,sudoers,web -d /admin -s /bin/zsh
+	 useradd -M web -g me -G root,sys,network,sudoers,admin -d /web -s /bin/zsh
+
+}
+
+provisionUsers() {
+
+    echo "no" > mePass
+    cat mePass >> mePassword
+    cat mePass >> mePassword
+    passwd me < mePassword
+    rm mePass mePassword
+
+    wait
+
+    echo "no" > adminPass
+    cat adminPass >> adminPassword
+    cat adminPass >> adminPassword
+    passwd admin < adminPassword
+    rm adminPass adminPassword
+
+    wait
+
+    echo "np" > webPass
+    cat webPass >> webPassword
+    cat webPass >> webPassword
+    passwd web < webPassword
+    rm webPass webPassword
+
+    wait
+
+}
+
+installGrub() {
+
+	if [ ! -e "/usr/bin/grub-install" ]; then
+		pacman -S grub efibootmgr os-prober
+	fi
+	wait
+
+	grubDisk=$(zenity --entry --title="Grub Disk?" --text="Drub Disk?")
+		if [[ $grubDisk = "sda" ]]; then
+			grub-install /dev/sda; wait
+			grub-mkconfig -o /boot/grub/grub.cfg
+		elif [[ $grubDisk = "nvme" ]]; then
+			grub-install /dev/nvme0n1; wait
+			grub-mkconfig -o /boot/grub/grub.cfg
+		fi
+
+
+}
+
+rebo() {
+
+	 echo "Exit Chroot Env? :$ext"
+	 read ext
+
+	 if [[ $ext = y ]]; then
+		  exit 0; exit 0
+
+	 fi
+
+	 unset ext
+
+}
+
+archyInstall() {
+
+	sudo -u me sudo pacman -S plasma plasma-desktop plasma-sdk plasma-wayland-session plasma-wayland-protocols gimp inkscape i3 sway
+
+	yes | pacman -S docker docker-compose composer
+
+	yes pacman -Syyu rclone hwdetect
+
+	yes | pacman -Syyu; wait
+	yes | pacman -Syuu; wait
+	pacman -Fy
+	wait
+
+	if [ -e "/main" ]; then
+		source /main/source-docs/prompt-export
+		source /main/source-docs/alias
+		source /main/source-docs/other.source
+		source /main/functions/get-yay
+		source /main/fucntions/get-lightly
+		source /main/functions/get-klassy
+
+		sleep 1
+
+			for n in /main/functions/*; do
+				chmod +x $n
+			done
+
+				while true; do
+					sudo -u me /main/functions/get-yay; wait
+					sudo -u me /main/functions/get-lightly; wait
+					sudo -u me /main/functions/get-klassy; wait
+
+					while false; do
+						sudo -u me /main/functions/get-yay; wait
+						sudo -u me /main/functions/get-lightly; wait
+						sudo -u me /main/functions/get-klassy; wait
+					break
+
+					done
+
+				done
+
+		unset n
+		wait
+		sleep 2
+	fi
+
+	chown -R me:me /home
+	chown -R admin:me /addmin
+	chown -R web:me /web
+
+}
+
+
+# Call Commands
+	$(provisioning)
+	wait
+	$(makeUsers)
+	wait
+	$(provisionUsers)
+	wait
+	$(installGrub)
+	wait
+	$(archyInstall)
+	wait
+	$(rebo)
+# Done

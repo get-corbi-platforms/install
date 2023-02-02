@@ -1,0 +1,487 @@
+#!/usr/bin/env zsh
+
+initNewInstall() {
+
+	setopt extendedglob
+
+	timedatectl set-ntp true
+
+	cp /installScripts/installation/phaseTwo /stall
+	cp /installScripts/installation/kicker-2 /Stall
+
+	source /main/source-docs/prompt-export
+	source /main/source-docs/alias
+	source /main/source-docs/other.source
+
+	redoDiskWrite() {
+
+		if lsblk | grep -q "/mnt/boot/efi"; then
+
+			rm -r /mnt/boot/*
+			umount /mnt/boot/efi
+			if lsblk | grep -q "/mnt/home"; then
+
+				rm -r /mnt/home/*
+				umount /mnt/home
+				if lsblk | grep -q "/mnt"; then
+
+					rm -r /mnt/*
+					umount /mnt
+				fi
+
+			fi
+
+		fi
+
+		determineDisk() {
+
+			determinedDiskToWrite=$(yad --entry --title="Which Disk?" --text="Determining Disk To Write")
+
+			case $determinedDiskToWrite in
+				sda)
+                    swapoff /dev/sda8
+					wipefs -a /dev/sda2
+					wait
+					wipefs -a /dev/sda4
+					wait
+					wipefs -a /dev/sda6
+					wait
+					swapoff /dev/sda8
+					wait
+					wipefs -a /dev/sda8
+					wait
+					export activeDecision="/dev/sda"
+					;;
+				sdb)
+                    swapoff /dev/sdb8
+					wipefs -a /dev/sdb2
+					wait
+					wipefs -a /dev/sdb4
+					wait
+					wipefs -a /dev/sdb6
+					wait
+					wipefs -a /dev/sdb8
+					wait
+					export activeDecision="/dev/sdb"
+					;;
+				nvme)
+                    swapoff /dev/nvme0n1p8
+					wipefs -a /dev/nvme0n1p2
+					wait
+					wipefs -a /dev/nvme0n1p4
+					wait
+					wipefs -a /dev/nvme0n1p6
+					wait
+					wipefs -a /dev/nvme0n1p8
+					wait
+					export activeDecision="/dev/nvme0n1"
+					;;
+				*)
+					echo "Only Disks SDA, SDB, or NVME are valid for this options"
+					;;
+			esac
+
+		}
+
+		determineDisk
+		wait
+		sleep 2
+    }
+
+    redoDiskWrite
+    wait
+    sleep 2
+
+    export  mountDisk="/dev/nvme0n1"
+    mkfs.vfat /dev/nvme0n1p2
+    wait
+    mkfs.ext4 /dev/nvme0n1p4
+    wait
+    mkfs.ext4 /dev/nvme0n1p6
+    wait
+    mkswap /dev/nvme0n1p8
+    wait
+
+    makeFilesystemsOnSelected() {
+
+
+        for selection in $activeDecision; do
+            echo $selection
+            wait
+            if [[ $activeDecision = "/dev/sda" ]]; then
+                export mountDisk="/dev/sda"
+                mkfs.vfat /dev/sda2
+                wait
+                mkfs.ext4 /dev/sda4
+                wait
+                mkfs.ext4 /dev/sda6
+                wait
+                mkswap /dev/sda8
+                wait
+            elif [[ $activeDecision = "/dev/sdb" ]]; then
+                export mountDisk="/dev/sdb"
+                mkfs.vfat /dev/sdb2
+                wait
+                mkfs.ext4 /dev/sdb4
+                wait
+                mkfs.ext4 /dev/sdb6
+                wait
+                mkswap /dev/sdb8
+                wait
+            elif [[ $activeDecision = "/dev/nvme" ]]; then
+                export  mountDisk="/dev/nvme0n1"
+                mkfs.vfat /dev/nvme0n1p2
+                wait
+                mkfs.ext4 /dev/nvme0n1p4
+                wait
+                mkfs.ext4 /dev/nvme0n1p6
+                wait
+                mkswap /dev/nvme0n1p8
+                wait
+            else
+                echo "Unable to Make Filesystem.  Try Again After Correcting Script or Disk"
+            fi
+
+        done
+
+        unset determinedDiskToWrite
+        unset selection
+        unset activeDecision
+
+    }
+
+
+        unset determinedDiskToWrite
+        unset selection
+        unset activeDecision
+
+    #makeFilesystemsOnSelected
+
+    mountAsNeeded() {
+
+        if [[ $mountDisk = "/dev/sda" ]]; then
+
+            print "Mountng"; sleep 2
+            swapon /dev/sda8
+            mount /dev/sda4 /mnt
+
+            if [ ! -e "/mnt/boot/efi" ]; then
+                mount --mkdir /dev/sda2 /mnt/boot/efi
+            elif [ -e "/mnt/boot/efi" ]; then
+                mount /dev/sda2 /mnt/boot/efi
+            fi
+
+            if [ ! -e "/mnt/home" ]; then
+                mount --mkdir /dev/sda6 /mnt/home
+            else
+                mount /dev/sda6 /mnt/home
+            fi
+
+        fi
+
+        if [[ $mountDisk = "/dev/sdb" ]]; then
+
+            print "Mountng"; sleep 2
+            swapon /dev/sdb8
+            mount /dev/sdb4 /mnt
+
+            if [ ! -e "/mnt/boot/efi" ]; then
+                mount --mkdir /dev/sdb2 /mnt/boot/efi
+            elif [ -e "/mnt/boot/efi" ]; then
+                mount /dev/sdb2 /mnt/boot/efi
+            fi
+
+            if [ ! -e "/mnt/home" ]; then
+                mount --mkdir /dev/sdb6 /mnt/home
+            else
+                mount /dev/sdb6 /mnt/home
+             fi
+
+        fi
+
+        if [[ $mountDisk = "/dev/nvme0n1" ]]; then
+
+            print "Mountng"; sleep 2
+            swapon /dev/nvme0n1p8
+            mount /dev/nvme0n1p4 /mnt
+
+            if [ ! -e "/mnt/boot/efi" ]; then
+                mount --mkdir /dev/nvme0n1p2 /mnt/boot/efi
+            elif [ -e "/mnt/boot/efi" ]; then
+                mount /dev/nvme0n1p2 /mnt/boot/efi
+            fi
+
+            if [ ! -e "/mnt/home" ]; then
+                mount --mkdir /dev/nvme0n1p6 /mnt/home
+            else
+                mount /dev/nvme0n1p6 /mnt/home
+            fi
+
+        fi
+
+   }
+
+   mountAsNeeded
+   wait
+   sleep 2
+
+   rebuildConfig() {
+
+        echo "## Pacman.conf" > /etc/pacman.conf
+        echo "[options]" >> /etc/pacman.conf
+        echo "Color" >> /etc/pacman.conf
+        echo "ILoveCandy" >> /etc/pacman.conf
+        echo "HoldPkg = pacman glibc" >> /etc/pacman.conf
+        echo "Architecture = auto" >> /etc/pacman.conf
+        echo "ParallelDownloads = 7" >> /etc/pacman.conf
+        echo "SigLevel = Required DatabaseOptional" >> /etc/pacman.conf
+        echo "LocalFileSigLevel = Optional" >> /etc/pacman.conf
+        echo "" >> /etc/pacman.conf
+        echo "[core]" >> /etc/pacman.conf
+        echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+        echo "[extra]" >> /etc/pacman.conf
+        echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+        echo "[community]" >> /etc/pacman.conf
+        echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+
+        wait
+
+        rkey=$(zenity --entry --title="Refresh Keys?")
+
+            case $rkey in
+                [yY])
+                    pacman-key --refresh-keys
+                    ;;
+                [nN])
+                    echo "Ok, Not refreshing keys at this time"
+                    ;;
+                yes)
+                    pacman-key --refresh-keys
+                    ;;
+                YES)
+                    pacman-key --refresh-keys
+                    ;;
+                no)
+                    echo "OK"
+                    ;;
+                NO)
+                    echo "OK"
+                    ;;
+            esac
+
+            unset rkey
+
+        refreshMirrors() {
+
+            pacman -Sy; pacman -Fy
+
+            if [ ! -e "/usr/bin/reflector" ]; then
+                yes | pacman -S reflector
+            fi
+
+            reflector --country US --delay 70 --connection-timeout 65 --download-timeout 60 --ipv4 --protocol https --latest 3 --fastest 3 --save /etc/pacman.d/mirrorlist
+
+            wait
+
+        }
+
+        refreshMirrors
+        wait
+        sleep 2
+
+   }
+
+   rebuildConfig
+   wait
+   sleep 2
+
+   establishParams() {
+
+        dir="/mnt"
+        pkgs=(base base-devel nano linux-firmware linux-hardened mesa intel-ucode amd-ucode iw iwd dhcpcd reflector git sof-firmware sof-tools bluez bluez-utils bluez-tools zsh zsh-completions bash-completion alsa-firmware arch-install-scripts cloudflared alsa-utils mkinitcpio fuse htop bashtop reflector wget zenity kdialog dialog yad fail2ban ufw grub efibootmgr os-prober rclone opera firefox)
+
+   }
+
+   installBaseSystem() {
+
+        pacstrap $dir $pkgs
+        wait
+
+        genfstab -U /mnt > /mnt/etc/fstab
+
+        rebuildConfigOnNewInstall() {
+
+            cp /etc/pacman.d/mirrorlist /mnt/etc/pacman.d/mirrorlist
+            wait
+            cp /etc/pacman.conf /mnt/etc/pacman.conf
+            wait
+            cp -r /etc/default /mnt/etc/default
+            wait
+
+        }
+
+        rebuildConfigOnNewInstall
+        wait
+        sleep 2
+
+   }
+
+   establishParams && \
+   installBaseSystem
+   wait
+   sleep 2
+
+   transferAsNeeded() {
+
+        local trfrHome=(
+            /home/.config
+            /home/.local
+            /home/.head
+            /home/bin
+            /home/Downloads
+            /home/Pictures
+            /home/Documents
+            /home/.oh-my-zsh
+            /home/yay-11.3.1-1-x86_64.pkg.tar.zst
+            /home/.ssh
+            /home/onedrive
+            /home/Desktop
+            /home/.zsh_history
+            /home/.zshrc
+
+        )
+
+        local trfrMain=(
+            /main/scripts
+            /main/functions
+            /main/source-docs
+
+        )
+
+        local trfrRoot=(
+            /root/.ssh
+            /root/.config
+            /root/.bash_history
+            /docker
+            /admin
+            /web
+
+        )
+
+        local scripting=(
+            /main/scripts/zinit
+            /main/scripts/install.sh
+            /main/scripts/
+            /installScripts
+
+        )
+
+        makeBackup() {
+
+            if [ -e /mnt/mntBak.tar ]; then
+                rm -r /mnt/mntBak.tar
+            fi
+            wait
+
+            tar -vcf /mnt/mntBak.tar ${trfrHome} ${trfrMain} ${trfrRoot}
+            wait
+
+            cd /mnt; wait
+
+            if [[ $PWD = "/mnt" ]]; then
+                tar -vxf mntBak.tar
+            else
+                echo "Not in correct Directory"
+                return 69
+            fi
+
+            cd /; wait
+
+        }
+
+        makeBackup
+        wait
+        sleep 2
+
+   }
+
+   transferAsNeeded
+   wait
+   sleep 2
+
+   cd /
+   wait
+   sleep 2
+
+   throwItTogether() {
+
+      cd /
+
+      cp /initNew /mnt/scripts/initNew
+      cp /Install /mnt/scripts/Install
+      cp /stall /mnt/scripts/stall
+      cp /finish /mnt/scripts/finish
+      cp /home/yay-11.3.1-1-x86_64.pkg.tar.zst /mnt/YAY
+
+      cp /stall /mnt/
+
+      scriptList=(/mnt/initNew /mnt/finish /mnt/stall)
+
+        for n in ${scriptList}; do
+            chmod +x $n
+            unset n
+            for n in /main/scripts; do
+                chmod +x $n
+                unset n
+            done
+        done
+
+        for i in $?; do
+            if [[ $i -gt 0 ]]; then
+                echo "Error:$?"
+                wait
+                sleep 2
+                return 6969
+            else
+                break
+            fi
+        done
+
+        unset i
+        unset onInstallScripts
+        unset scriptList
+
+    }
+
+    throwItTogether
+    wait
+    sleep 2
+
+   postInitCall() {
+
+        cp -r /installScripts/installation/* /mnt/
+
+        cd /
+        if [[ $PWD = "/" ]]; then
+            arch-chroot /mnt zsh ./phaseTwo
+        fi
+
+   }
+
+   postInitCall
+   wait
+   sleep 2
+
+   echo "alias aa='sudo arch-chroot /mnt zsh' " >> /main/source-docs/alias
+   source /main/source-docs/alias
+   wait
+   sleep 2
+
+}
+
+(
+    sleep 2
+    initNewInstall
+    wait
+) |
+zenity --text-info --auto-scroll --title="Installation Log" --text="Install Log will now engage"

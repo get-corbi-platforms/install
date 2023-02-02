@@ -1,0 +1,82 @@
+#!/usr/bin/env zsh
+
+systemctl enable iwd
+wait
+systemctl enable dhcpcd
+wait
+systemctl start dhcpcd
+wait
+systemctl start iwd
+wait
+systemctl enable docker
+wait
+systemctl start docker
+wait
+systemctl enable fail2ban
+wait
+systemctl start fail2ban
+wait
+sleep 2
+
+rfkill unblock wifi
+wait
+rfkill unblock bluetooth
+wait
+systemctl enable bluetooth
+systemctl start bluetooth
+wait
+systemctl enable sddm
+wait
+systemctl enable ufw; systemctl start ufw
+wait
+ufw enable
+
+echo "Hilton1653" > netPass
+wait
+iwctl station wlan0 connect Aj1982 --password $(cat netPas)
+wait
+if ip a | grep -q "wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP"; then
+    echo "Network Connected Successfully"
+elif ip a | grep -q "wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state DOWN"; then
+    echo ":Netowrk Connectivity Error"
+fi
+sleep 2
+
+chown -R me:me /home
+
+pacman -S sway i3 
+wait
+pacman -Syyu
+pacman -Fy
+wait
+
+wait
+composer update
+wait
+composer upgrade
+wait
+
+cd /; wait
+composer create-project laravel/laravel PHP
+cd PHP; wait
+composer create-project microweber/microweber MICROWEBER
+wait
+
+pacman -S yarn npm nodejs 
+
+wait
+
+mkdir /NODE
+
+cd /NODE; wait
+yarn create electron-app Electroad
+wait
+cd Electroad; wait
+cd node_modules; wait
+yarn add uglify shelljs glob
+wait
+yarn upgrade
+wait cd ~
+wait
+
+systemctl start sddm

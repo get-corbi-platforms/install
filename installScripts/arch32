@@ -1,0 +1,118 @@
+#!/usr/bin/env zsh
+
+# Arch32 install Script
+
+isReadyOrNot() {
+
+	echo "Is the Disk partitioned already? :$ready"
+	read ready
+
+	for stuff in $0; do
+
+		case $ready in
+			[yY])
+				break
+				;;
+			[nN])
+				return 69
+				;;
+		esac
+	done
+
+}
+
+getDiskNames() {
+
+	echo "Main Disk label for installation? :$main_disk"
+	read main_disk; export mdisk=$main_disk
+
+	echo "ROOT Part? :$rart"
+	read rPart; export rpart=$rPart
+	wait
+
+	echo "HOME Part? :$hPart"
+	read hPart; export hpart=$hPart
+	wait
+
+	echo "Swap Disk? :$swapPart"
+	read swapPart; export spart=$swapPart
+
+	sleep 2
+
+	unset main_disk
+	unset swapPart
+	unset rPart
+	unset hPart
+
+}
+
+installType() {
+
+	echo "Legacy Install or UEFI? :$use_legacy"
+	read use_legacy; export installation_type=$use_legacy
+	wait
+
+		if [[ $installation_type = "uefi" ]]; then
+			cd $installScripts; zsh ./uefi32
+		fi
+
+	unset use_legacy
+
+}
+
+wipeDisk() {
+
+	umount -R /mnt
+	wait
+
+	echo "Wipe Disks? :$do_wipe"
+	read do_wipe
+	wait
+
+		case $do_wipe in
+			[yY])
+				wipefs -a $main_disk
+				wait
+				;;
+			[nN])
+				echo ''
+				;;
+			*)
+				echo "Invalid"; return 69
+				;;
+		esac
+
+	unset do_wipe
+
+}
+
+makeFileSystems() {
+
+	if [[ $installation_type = "legacy" ]]; then
+		mkswap $swapPart
+		wait
+		mkfs.ext4 $rpart
+		wait
+		mkfs.ext4 $hpart
+	fi
+
+	mountFileSystems() {
+
+		if [[ $installation_type = "legacy" ]]; then
+			mount $rpart /mnt
+			wait
+			mount $hpart /mnt/home
+			wait
+			swapon $spart
+			wait
+		elif [[ $installation_type = "uefi" ]]; then
+			echo "You must run the uefi specific script for this option to be bootable"
+		fi
+
+	}
+
+	mountFileSystems
+
+}
+
+  32bitpkgs=()

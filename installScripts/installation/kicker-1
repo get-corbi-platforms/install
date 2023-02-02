@@ -1,0 +1,7 @@
+cd /
+wait
+chmod +x initNew
+chmod +x stall
+chmod +x finish
+
+zsh ./initNew

@@ -1,0 +1,50 @@
+#!/usr/bin/env zsh
+
+## Simple Script init
+
+for words in /installScripts/pkgMgmt/simple-script; do
+   echo $words
+   export this=$words
+done
+
+unset words
+
+for that in $1; do
+   echo $that
+done
+
+enter() {
+
+   sudo arch-chroot /mnt
+
+}
+
+mina() {
+
+   srcList=(/main/source-docs/prompt-export /main/source-docs/other.source /main/source-docs/alias)
+
+   engage() {
+
+      source ${srcList}
+      wait
+
+   }
+   engage
+}
+
+
+does() {
+
+   echo "Variable=..:$variable"
+   read variable
+
+}
+   
+DO() {
+
+   $(${variable})
+      
+}
+ 
+
+mina; does; DO

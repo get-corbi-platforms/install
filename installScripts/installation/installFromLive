@@ -1,0 +1,105 @@
+#!/usr/bin/env zsh
+# script
+
+rm -r /mnt
+   print "Unmoounting"; sleep 2
+	umount /mnt/boot/efi
+	umount /mnt/home
+	umount /mnt
+	swapoff /dev/nvme0n1p8
+
+   print "Wiping"
+   	sleep 2
+   	wipefs -a /dev/nvme0n1p2
+   	wipefs -a /dev/nvme0n1p4
+   	wipefs -a /dev/nvme0n1p6
+   	wipefs -a /dev/nvme0n1p8
+   wait
+
+   print "Building FS"; sleep 2
+   	mkfs.vfat -F32 -I /dev/nvme0n1p2
+   	mkfs.ext4 /dev/nvme0n1p4
+   	mkfs.ext4 /dev/nvme0n1p6
+   	mkswap /dev/nvme0n1p8
+   wait
+
+   print "Mountng"; sleep 2
+   	swapon /dev/nvme0n1p8
+   	mount /dev/nvme0n1p4 /mnt
+   if [ ! -e "/mnt/boot/efi" ]; then
+        mount --mkdir /dev/nvme0n1p2 /mnt/boot/efi
+   elif [ -e "/mnt/boot/efi" ]; then
+        mount /dev/nvme0n1p2 /mnt/boot/efi
+   fi
+
+   if [ ! -e "/mnt/home" ]; then
+        mount --mkdir /dev/nvme0n1p6 /mnt/home
+   else
+        mount /dev/nvme0n1p6 /mnt/home
+   fi
+	
+
+      echo "## Pacman.conf" > /etc/pacman.conf
+      echo "[options]" >> /etc/pacman.conf
+      echo "Color" >> /etc/pacman.conf
+      echo "ILoveCandy" >> /etc/pacman.conf
+      echo "HoldPkg = pacman glibc" >> /etc/pacman.conf
+      echo "Architecture = auto" >> /etc/pacman.conf
+      echo "ParallelDownloads = 7" >> /etc/pacman.conf
+      echo "SigLevel = Required DatabaseOptional" >> /etc/pacman.conf
+      echo "LocalFileSigLevel = Optional" >> /etc/pacman.conf
+      echo "" >> /etc/pacman.conf
+      echo "[core]" >> /etc/pacman.conf
+      echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+      echo "[extra]" >> /etc/pacman.conf
+      echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+      echo "[community]" >> /etc/pacman.conf
+      echo "Include = /etc/pacman.d/mirrorlist" >>/etc/pacman.conf
+
+      wait
+
+      cp /etc/pacman.conf > /mnt/etc/pacman.conf
+
+   dir="/mnt"
+   pkgs=(base base-devel nano linux-firmware linux-hardened intel-ucode amd-ucode iw iwd dhcpcd reflector git sof-firmware sof-tools bluez bluez-utils bluez-tools zsh zsh-completions bash-completion alsa-firmware arch-install-scripts cloudflared alsa-utils mkinitcpio fuse htop bashtop mesa reflector wget)
+
+        timedatectl set-ntp true
+
+	echo "Refresh Keys First? :$rkey"
+	read rkey
+	if [[ $rkey = y ]]; then
+            pacman-key --refresh-keys; wait
+        fi
+
+
+   pacman -Sy; pacman -Fy
+   
+   if [ ! -e "/usr/bin/reflector" ]; then
+   	yes | pacman -S reflector
+   fi
+   
+   reflector --country US --delay 70 --connection-timeout 65 --download-timeout 60 --ipv4 --protocol https --latest 3 --fastest 3 --save /etc/pacman.d/mirrorlist
+   
+   wait
+
+      pacstrap $dir $pkgs
+
+      genfstab -U /mnt > /mnt/etc/fstab
+
+
+	cd /mnt; wait
+	if [[ $PWD = "/mnt" ]]; then
+	   tar -vxf /mnt2/bak.tar
+	   if [[ $? -eq 0 ]]; then
+	      cp /mnt2/stall /mnt/
+	      cp /mnt2/finish /mnt/
+	      cp /mnt2/int /mnt/
+	      chmod +x /mnt/install
+              chmod +x /mnt/finish
+	   fi
+        fi
+      cp /etc/pacman.conf /mnt
+      cd $HOME
+
+      arch-chroot /mnt zsh ./install
+

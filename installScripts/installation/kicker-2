@@ -1,0 +1,3 @@
+chmod +x /stall || chmod +x /mnt/stall
+
+arch-chroot /mnt zsh ./stall

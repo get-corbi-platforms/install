@@ -1,0 +1,15 @@
+local Dir='%{$fg[blue]%}[%{$fg[cyan]%}%c%{$fg[blue]%}]%{$reset_color%} $(git_prompt_info)'
+local Arrow="%(?:%{$fg_bold[green]%}%B➜  :%{$fg_bold[red]%}➜  ) $reset_color"
+local UName="%(?:%{$fg_bold[cyan]%}%n:%{$fg[red]%}%n)$reset_color"
+local HostMachine="%(?:%{$fg[blue]%}%m:%{$fg_bold[grey]%}%m)$reset_color"
+local Blue="$fg_bold[blue]"
+local Reset="$reset_color"
+
+PROMPT=" 
+ ${Blue}U${Reset}: (${UName}) ${Blue}H${Reset}: (${HostMachine})
+ ${Dir}${Arrow}"
+
+ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg_bold[blue]%}git:(%{$fg[red]%}"
+ZSH_THEME_GIT_PROMPT_SUFFIX="%{$reset_color%} "
+ZSH_THEME_GIT_PROMPT_DIRTY="%{$fg[blue]%}) %{$fg[yellow]%}✗"
+ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg[blue]%})"
