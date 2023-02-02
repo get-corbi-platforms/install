@@ -1,0 +1,16 @@
+## This is a link file to install the platform.  The file even compressed is about 600MB larger than github allows.
+
+Option 1: Corbi proprietary installer site;
+  https://alldocs.cf/corbi-containers
+  -Then download the file and unzip 
+  
+Option 2: Use Corb Cloud to download the file
+  -Then unzip it and follow the next steps
+  
+    ** WINDOWS **
+    1.) Download the file
+    2.) Unzip or tar the file to a directory
+    3.) Run the .exe file as administrator
+    
+    ** Linux/MacOS **
+    1.) Just build the shit, if you have Linux you can figure it out {:)}
